@@ -1,24 +1,7 @@
-"use client"
-
-import { AppSidebar } from "@/components/app-sidebar"
-import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable } from "@/components/data-table"
-import { SectionCards } from "@/components/section-cards"
-import { SiteHeader } from "@/components/site-header"
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import data from "@/app/dashboard/data.json"
-
-
 export default function Syllabus(): React.JSX.Element {
-
-
     return (
-        <>
-            <h1>Syllabus</h1>
-        </>
+        <div className="px-4 py-6 lg:px-6">
+            <h1 className="text-2xl font-semibold">Syllabus</h1>
+        </div>
     )
 }
