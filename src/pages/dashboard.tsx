@@ -15,7 +15,7 @@ import data from "@/app/dashboard/data.json"
 
 export default function Dashboard(): React.JSX.Element {
 
-    const items = [{title: "Dashboard", url: "#"}];
+    // const items = [{title: "Dashboard", url: "#"}];
 
     return (
         <TooltipProvider>
