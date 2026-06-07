@@ -4,7 +4,7 @@ import { SidebarProvider } from "@/components/ui/sidebar"
 export default function Email() {
   return (
     <SidebarProvider
-      className="!min-h-0 flex-1"
+      className="min-h-0! flex-1"
       defaultOpen={false}
       style={{ "--sidebar-width": "256px" } as React.CSSProperties}
     >

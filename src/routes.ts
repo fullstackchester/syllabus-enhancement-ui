@@ -7,6 +7,7 @@ import CreateAccount from './pages/create-account';
 import Dashboard from './pages/dashboard';
 import Syllabus from './pages/syllabus';
 import Email from './pages/emails';
+import Accounts from './pages/accounts';
 
 const routeConfig: RouteObject[] = [
   {
@@ -38,6 +39,11 @@ const routeConfig: RouteObject[] = [
             path: 'emails',
             Component: Email,
             handle: { title: 'Emails' },
+          },
+          {
+            path: 'accounts',
+            Component: Accounts,
+            handle: { title: 'Accounts' },
           },
         ],
       },
