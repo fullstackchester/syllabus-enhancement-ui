@@ -18,7 +18,7 @@ export function NavMain({
     icon?: React.ReactNode
   }[]
 }) {
-  const { pathname } = useLocation()
+  const { pathname } = useLocation();
 
   return (
     <SidebarGroup>
@@ -33,15 +33,18 @@ export function NavMain({
               />
               <span>Quick Create</span>
             </SidebarMenuButton>
-            <Button
-              size="icon"
-              className="size-8 group-data-[collapsible=icon]:opacity-0"
-              variant="outline"
+            <SidebarMenuButton
+              tooltip="Inbox"
+              size="default"
+              isActive={pathname === '/emails'}
+              className={`size-8 min-w-8 group-data-[collapsible=icon]:opacity-0${pathname === '/emails' ? ' data-active:bg-primary data-active:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground' : ''}`}
+              asChild
             >
-              <MailIcon
-              />
-              <span className="sr-only">Inbox</span>
-            </Button>
+              <Link to="/emails">
+                <MailIcon />
+                <span className="sr-only">Inbox</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         <SidebarMenu>
@@ -51,6 +54,7 @@ export function NavMain({
                 tooltip={item.title}
                 isActive={pathname === item.url}
                 asChild
+                className={pathname === item.url ? "data-active:bg-primary data-active:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : ""}
               >
                 <Link to={item.url}>
                   {item.icon}

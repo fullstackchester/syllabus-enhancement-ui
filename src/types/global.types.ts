@@ -33,3 +33,16 @@ export type SideBarItem = {
     navSecondary: NavItem[]
     documents: DocumentItem[]
 }
+
+export type ApiResponse<T> = {
+    status: number
+    data: T
+    message?: string
+    error?: ApiError
+}
+
+type ApiError = {
+    code: string
+    message: string
+    details?: any[]
+}

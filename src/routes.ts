@@ -6,6 +6,7 @@ import Shell from '@/components/shell';
 import CreateAccount from './pages/create-account';
 import Dashboard from './pages/dashboard';
 import Syllabus from './pages/syllabus';
+import Email from './pages/emails';
 
 const routeConfig: RouteObject[] = [
   {
@@ -32,6 +33,11 @@ const routeConfig: RouteObject[] = [
             path: 'syllabus',
             Component: Syllabus,
             handle: { title: 'Syllabus' },
+          },
+          {
+            path: 'emails',
+            Component: Email,
+            handle: { title: 'Emails' },
           },
         ],
       },
