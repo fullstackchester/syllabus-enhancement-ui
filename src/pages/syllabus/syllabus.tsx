@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import AccountsService from "../services/accounts.service";
+import AccountsService from "../../services/accounts.service";
 
 const EXCLUDED_KEYS = new Set([
   "uid",

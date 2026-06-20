@@ -34,8 +34,8 @@ export function NavMain({
             <SidebarMenuButton
               tooltip="Inbox"
               size="default"
-              isActive={pathname === "/emails"}
-              className={`size-8 min-w-8 group-data-[collapsible=icon]:opacity-0${pathname === "/emails" ? "hover:bg-primary/90 hover:text-primary-foreground data-active:bg-primary data-active:text-primary-foreground" : ""}`}
+              isActive={pathname.startsWith("/emails")}
+              className={`size-8 min-w-8 group-data-[collapsible=icon]:opacity-0${pathname.startsWith("/emails") ? "hover:bg-primary/90 hover:text-primary-foreground data-active:bg-primary data-active:text-primary-foreground" : ""}`}
               asChild
             >
               <Link to="/emails">
@@ -50,10 +50,10 @@ export function NavMain({
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 tooltip={item.title}
-                isActive={pathname === item.url}
+                isActive={pathname.startsWith(item.url)}
                 asChild
                 className={
-                  pathname === item.url
+                  pathname.startsWith(item.url)
                     ? "hover:bg-primary/90 hover:text-primary-foreground data-active:bg-primary data-active:text-primary-foreground"
                     : ""
                 }
