@@ -1,5 +1,5 @@
-import { EmailSidebar } from "@/components/emails/sidebar"
-import { SidebarProvider } from "@/components/ui/sidebar"
+import { EmailSidebar } from "@/components/emails/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 export default function Email() {
   return (
@@ -18,5 +18,5 @@ export default function Email() {
         ))}
       </div>
     </SidebarProvider>
-  )
+  );
 }

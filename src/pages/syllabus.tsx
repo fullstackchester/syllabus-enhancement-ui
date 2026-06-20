@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   flexRender,
   getCoreRowModel,
@@ -10,7 +10,12 @@ import {
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
-import { ChevronDownIcon, ChevronUpIcon, CirclePlusIcon, DownloadIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  CirclePlusIcon,
+  DownloadIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,8 +30,12 @@ import {
 import AccountsService from "../services/accounts.service";
 
 const EXCLUDED_KEYS = new Set([
-  "uid", "metadata", "passwordHash", "passwordSalt",
-  "tokensValidAfterTime", "providerData",
+  "uid",
+  "metadata",
+  "passwordHash",
+  "passwordSalt",
+  "tokensValidAfterTime",
+  "providerData",
 ]);
 
 function SortableHeader({ label, column }: { label: string; column: any }) {
@@ -45,14 +54,18 @@ function SortableHeader({ label, column }: { label: string; column: any }) {
   );
 }
 
-function buildColumns(sample: Record<string, unknown>): ColumnDef<Record<string, unknown>>[] {
+function buildColumns(
+  sample: Record<string, unknown>
+): ColumnDef<Record<string, unknown>>[] {
   return Object.keys(sample)
     .filter((key) => !EXCLUDED_KEYS.has(key))
     .map((key) => {
       if (key === "emailVerified") {
         return {
           accessorKey: key,
-          header: ({ column }) => <SortableHeader label="Verified" column={column} />,
+          header: ({ column }) => (
+            <SortableHeader label="Verified" column={column} />
+          ),
           cell: ({ getValue }) =>
             getValue<boolean>() ? (
               <Badge className="bg-green-100 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400">
@@ -69,7 +82,9 @@ function buildColumns(sample: Record<string, unknown>): ColumnDef<Record<string,
       return {
         accessorKey: key,
         header: ({ column }) => <SortableHeader label={key} column={column} />,
-        cell: ({ getValue }) => <span>{String(getValue<unknown>() ?? "—")}</span>,
+        cell: ({ getValue }) => (
+          <span>{String(getValue<unknown>() ?? "—")}</span>
+        ),
       };
     });
 }
@@ -93,7 +108,10 @@ function Syllabus(): React.JSX.Element {
     header: ({ table }) => (
       <div className="flex items-center justify-center">
         <Checkbox
-          checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label="Select all"
         />
@@ -111,7 +129,8 @@ function Syllabus(): React.JSX.Element {
     enableSorting: false,
   };
 
-  const columns = data.length > 0 ? [selectionColumn, ...buildColumns(data[0])] : [];
+  const columns =
+    data.length > 0 ? [selectionColumn, ...buildColumns(data[0])] : [];
 
   const table = useReactTable({
     data,
@@ -128,16 +147,14 @@ function Syllabus(): React.JSX.Element {
     <div className="@container/main flex flex-1 flex-col gap-2">
       <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
         <div className="flex items-start justify-between gap-2 px-4 lg:px-6">
-            {/* <h1 className="text-2xl font-semibold">Syllabus</h1> */}
-            <Input placeholder="Search" />
-            <Button >
-                <CirclePlusIcon data-icon="inline-end"/> New Syllabus
-            </Button>
-            <Button variant="secondary">
-                <DownloadIcon data-icon="inline-end"/> Export
-            </Button>
-
-
+          {/* <h1 className="text-2xl font-semibold">Syllabus</h1> */}
+          <Input placeholder="Search" />
+          <Button>
+            <CirclePlusIcon data-icon="inline-end" /> New Syllabus
+          </Button>
+          <Button variant="secondary">
+            <DownloadIcon data-icon="inline-end" /> Export
+          </Button>
         </div>
 
         <div className="px-4 lg:px-6">
@@ -157,7 +174,10 @@ function Syllabus(): React.JSX.Element {
                     <TableRow key={headerGroup.id}>
                       {headerGroup.headers.map((header) => (
                         <TableHead key={header.id} className="h-12 px-4">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                         </TableHead>
                       ))}
                     </TableRow>
@@ -177,13 +197,19 @@ function Syllabus(): React.JSX.Element {
                   ))
                 ) : error ? (
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center text-destructive">
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center text-destructive"
+                    >
                       {error}
                     </TableCell>
                   </TableRow>
                 ) : table.getRowModel().rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={columns.length}
+                      className="h-24 text-center text-muted-foreground"
+                    >
                       No results.
                     </TableCell>
                   </TableRow>
@@ -192,7 +218,10 @@ function Syllabus(): React.JSX.Element {
                     <TableRow key={row.id}>
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id} className="px-4 py-3.5">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
                         </TableCell>
                       ))}
                     </TableRow>

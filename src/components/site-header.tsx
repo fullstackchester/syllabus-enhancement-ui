@@ -1,10 +1,11 @@
-import { useMatches } from "react-router"
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { useMatches } from "react-router";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function SiteHeader() {
-  const matches = useMatches()
-  const title = matches.findLast((m) => (m.handle as { title?: string })?.title)?.handle as { title: string } | undefined
+  const matches = useMatches();
+  const title = matches.findLast((m) => (m.handle as { title?: string })?.title)
+    ?.handle as { title: string } | undefined;
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
@@ -17,5 +18,5 @@ export function SiteHeader() {
         <h1 className="text-base font-medium">{title?.title ?? "App"}</h1>
       </div>
     </header>
-  )
+  );
 }

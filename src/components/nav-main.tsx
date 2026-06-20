@@ -4,18 +4,18 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { CirclePlusIcon, MailIcon } from "lucide-react"
-import { Link, useLocation } from "react-router"
+} from "@/components/ui/sidebar";
+import { CirclePlusIcon, MailIcon } from "lucide-react";
+import { Link, useLocation } from "react-router";
 
 export function NavMain({
   items,
 }: {
   items: {
-    title: string
-    url: string
-    icon?: React.ReactNode
-  }[]
+    title: string;
+    url: string;
+    icon?: React.ReactNode;
+  }[];
 }) {
   const { pathname } = useLocation();
 
@@ -28,15 +28,14 @@ export function NavMain({
               tooltip="Quick Create"
               className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
             >
-              <CirclePlusIcon
-              />
+              <CirclePlusIcon />
               <span>Quick Create</span>
             </SidebarMenuButton>
             <SidebarMenuButton
               tooltip="Inbox"
               size="default"
-              isActive={pathname === '/emails'}
-              className={`size-8 min-w-8 group-data-[collapsible=icon]:opacity-0${pathname === '/emails' ? ' data-active:bg-primary data-active:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground' : ''}`}
+              isActive={pathname === "/emails"}
+              className={`size-8 min-w-8 group-data-[collapsible=icon]:opacity-0${pathname === "/emails" ? "hover:bg-primary/90 hover:text-primary-foreground data-active:bg-primary data-active:text-primary-foreground" : ""}`}
               asChild
             >
               <Link to="/emails">
@@ -53,7 +52,11 @@ export function NavMain({
                 tooltip={item.title}
                 isActive={pathname === item.url}
                 asChild
-                className={pathname === item.url ? "data-active:bg-primary data-active:text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground" : ""}
+                className={
+                  pathname === item.url
+                    ? "hover:bg-primary/90 hover:text-primary-foreground data-active:bg-primary data-active:text-primary-foreground"
+                    : ""
+                }
               >
                 <Link to={item.url}>
                   {item.icon}
@@ -65,5 +68,5 @@ export function NavMain({
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
-  )
+  );
 }

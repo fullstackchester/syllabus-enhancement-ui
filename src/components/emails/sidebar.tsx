@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ArchiveX, Command, File, Inbox, Send, Trash2 } from "lucide-react"
+import * as React from "react";
+import { ArchiveX, Command, File, Inbox, Send, Trash2 } from "lucide-react";
 
-import { NavUser } from "@/components/nav-user"
-import { Label } from "@/components/ui/label"
+import { NavUser } from "@/components/nav-user";
+import { Label } from "@/components/ui/label";
 import {
   Sidebar,
   SidebarContent,
@@ -17,8 +17,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { Switch } from "@/components/ui/switch"
+} from "@/components/ui/sidebar";
+import { Switch } from "@/components/ui/switch";
 
 const data = {
   user: {
@@ -115,19 +115,21 @@ const data = {
         "To celebrate our recent project success, I'd like to organize a team dinner.\nAre you available next Friday evening? Please let me know your preferences.",
     },
   ],
-}
+};
 
 export function EmailSidebar({ ...props }: React.ComponentProps<"div">) {
-  const [activeItem, setActiveItem] = React.useState(data.navMain[0])
-  const [mails, setMails] = React.useState(data.mails)
-  const { open, setOpen } = useSidebar()
+  const [activeItem, setActiveItem] = React.useState(data.navMain[0]);
+  const [mails, setMails] = React.useState(data.mails);
+  const { open, setOpen } = useSidebar();
 
   return (
     // Plain div replaces the outer Sidebar to avoid position:fixed viewport overlay
     <div className="flex h-full flex-row border-r bg-sidebar" {...props}>
-
       {/* Icon navigation — always visible */}
-      <Sidebar collapsible="none" className="w-[calc(var(--sidebar-width-icon)+1px)]! border-r">
+      <Sidebar
+        collapsible="none"
+        className="w-[calc(var(--sidebar-width-icon)+1px)]! border-r"
+      >
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -154,12 +156,15 @@ export function EmailSidebar({ ...props }: React.ComponentProps<"div">) {
                     <SidebarMenuButton
                       tooltip={{ children: item.title, hidden: false }}
                       onClick={() => {
-                        setActiveItem(item)
-                        const mail = data.mails.sort(() => Math.random() - 0.5)
+                        setActiveItem(item);
+                        const mail = data.mails.sort(() => Math.random() - 0.5);
                         setMails(
-                          mail.slice(0, Math.max(5, Math.floor(Math.random() * 10) + 1))
-                        )
-                        setOpen(true)
+                          mail.slice(
+                            0,
+                            Math.max(5, Math.floor(Math.random() * 10) + 1)
+                          )
+                        );
+                        setOpen(true);
                       }}
                       isActive={activeItem?.title === item.title}
                       className="px-2.5 md:px-2"
@@ -218,5 +223,5 @@ export function EmailSidebar({ ...props }: React.ComponentProps<"div">) {
         </Sidebar>
       )}
     </div>
-  )
+  );
 }
