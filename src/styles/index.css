@@ -46,6 +46,16 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+
+    /* Paper sizes at 96 PPI */
+    --width-letter: 816px;
+    --height-letter: 1056px;
+    --width-legal: 816px;
+    --height-legal: 1344px;
+    --width-a4: 794px;
+    --height-a4: 1123px;
+    --width-a3: 1123px;
+    --height-a3: 1587px;
 }
 
 :root {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,6 +91,7 @@ function buildColumns(
 }
 
 function Syllabus(): React.JSX.Element {
+  const navigate = useNavigate();
   const [data, setData] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,7 +151,7 @@ function Syllabus(): React.JSX.Element {
         <div className="flex items-start justify-between gap-2 px-4 lg:px-6">
           {/* <h1 className="text-2xl font-semibold">Syllabus</h1> */}
           <Input placeholder="Search" />
-          <Button>
+          <Button onClick={() => navigate(`/syllabus/${crypto.randomUUID()}`)}>
             <CirclePlusIcon data-icon="inline-end" /> New Syllabus
           </Button>
           <Button variant="secondary">
