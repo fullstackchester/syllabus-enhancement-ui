@@ -6,7 +6,13 @@
   ],
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@components": ["./src/components/*"],
+      "~shadcnui": ["./src/components/ui/*"],
+      "@pages": ["./src/pages/*"],
+      "@services": ["./src/services/*"],
+      "@styles": ["./src/styles/*"],
+      "@types": ["./src/types/*"],
     }
   }
 }
