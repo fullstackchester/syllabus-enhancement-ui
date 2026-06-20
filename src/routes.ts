@@ -5,9 +5,9 @@ import App from "@/App.tsx";
 import Shell from "@/components/shell";
 import CreateAccount from "./pages/create-account";
 import Dashboard from "./pages/dashboard";
-import Syllabus from "./pages/syllabus";
 import Email from "./pages/emails";
 import Accounts from "./pages/accounts";
+import syllabusRoutes from "./routes/syllabus.routes";
 
 const routeConfig: RouteObject[] = [
   {
@@ -32,8 +32,7 @@ const routeConfig: RouteObject[] = [
           },
           {
             path: "syllabus",
-            Component: Syllabus,
-            handle: { title: "Syllabus" },
+            children: syllabusRoutes,
           },
           {
             path: "emails",
