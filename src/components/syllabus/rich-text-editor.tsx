@@ -8,6 +8,7 @@ import {
   CalendarClock,
   CalendarDays,
   Clock,
+  Baseline,
   Heading1,
   Heading2,
   Heading3,
@@ -20,6 +21,7 @@ import {
   Redo2,
   ShieldCheck,
   Strikethrough,
+  Type,
   Underline,
   Undo2,
   Users,
@@ -30,15 +32,23 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
 import type { SyllabusStatus } from "@/types/syllabus.types";
 import { MarginRuler } from "@/components/syllabus/margin-ruler";
 import {
   DEFAULT_MARGINS,
-  PAGE_HEIGHT,
-  PAGE_WIDTH,
+  DEFAULT_PAPER_SIZE,
+  PAPER_SIZES,
   type Margins,
+  type PaperSize,
 } from "@/components/syllabus/page-geometry";
 
 type ActiveFormats = {
@@ -68,6 +78,31 @@ const EMPTY_FORMATS: ActiveFormats = {
   justifyFull: false,
   block: "p",
 };
+
+// Web-safe families that render consistently across browsers/OSes without any
+// web-font loading. `value` is the full stack passed to execCommand("fontName").
+const FONT_FAMILIES: { label: string; value: string }[] = [
+  { label: "Sans Serif", value: "Helvetica, Arial, sans-serif" },
+  { label: "Arial", value: "Arial, sans-serif" },
+  { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
+  { label: "Tahoma", value: "Tahoma, Geneva, sans-serif" },
+  { label: "Trebuchet MS", value: '"Trebuchet MS", Helvetica, sans-serif' },
+  { label: "Times New Roman", value: '"Times New Roman", Times, serif' },
+  { label: "Georgia", value: "Georgia, serif" },
+  { label: "Garamond", value: 'Garamond, "Times New Roman", serif' },
+  { label: "Courier New", value: '"Courier New", Courier, monospace' },
+  { label: "Comic Sans MS", value: '"Comic Sans MS", "Comic Sans", cursive' },
+  { label: "Impact", value: "Impact, Charcoal, sans-serif" },
+];
+
+const LINE_HEIGHTS: { label: string; value: string }[] = [
+  { label: "Single", value: "1" },
+  { label: "1.15", value: "1.15" },
+  { label: "1.5", value: "1.5" },
+  { label: "Double", value: "2" },
+  { label: "2.5", value: "2.5" },
+  { label: "3", value: "3" },
+];
 
 let pageCounter = 0;
 const newPageId = () => `page-${++pageCounter}`;
@@ -145,8 +180,15 @@ export default function RichTextEditor() {
   const [pageIds, setPageIds] = React.useState<string[]>(() => [newPageId()]);
   const [formats, setFormats] = React.useState<ActiveFormats>(EMPTY_FORMATS);
   const [margins, setMargins] = React.useState<Margins>(DEFAULT_MARGINS);
+  const [paperSize, setPaperSize] = React.useState<PaperSize>(DEFAULT_PAPER_SIZE);
   const lastEditorRef = React.useRef<HTMLDivElement | null>(null);
   const editorsRef = React.useRef<Map<string, HTMLDivElement>>(new Map());
+  // The most recent selection that lived inside an editor. Opening a dropdown
+  // (font, line height) moves focus out and collapses the live selection, so we
+  // stash it here and restore it before applying the command.
+  const savedRangeRef = React.useRef<Range | null>(null);
+
+  const paper = PAPER_SIZES[paperSize];
 
   const registerEditor = React.useCallback(
     (id: string, el: HTMLDivElement | null) => {
@@ -221,12 +263,22 @@ export default function RichTextEditor() {
     if (keep < pageIds.length) setPageIds((ids) => ids.slice(0, keep));
   }, [pageIds]);
 
-  // Re-run pagination after the page list changes (e.g. a page was just added)
-  // or the margins change (resizing the writable area reflows content) so
-  // multi-page spills converge over successive renders.
+  // Re-run pagination after the page list changes (e.g. a page was just added),
+  // the margins change, or the paper size changes — each resizes the writable
+  // area and reflows content, so multi-page spills converge over renders.
   React.useLayoutEffect(() => {
     paginate();
-  }, [paginate, margins]);
+  }, [paginate, margins, paper.width, paper.height]);
+
+  // Match the printed @page box to the selected paper size so the browser's
+  // print preview paginates against the same dimensions shown on screen.
+  React.useEffect(() => {
+    const style = document.createElement("style");
+    style.setAttribute("data-paper-size", "");
+    style.textContent = `@media print { @page { size: ${paper.print}; margin: 0; } }`;
+    document.head.appendChild(style);
+    return () => style.remove();
+  }, [paper.print]);
 
   // Merge a partial margin update, rounding to whole pixels to avoid jitter.
   const updateMargins = React.useCallback((patch: Partial<Margins>) => {
@@ -269,10 +321,71 @@ export default function RichTextEditor() {
   }, []);
 
   React.useEffect(() => {
-    document.addEventListener("selectionchange", refreshFormats);
+    const onSelectionChange = () => {
+      // Remember the caret/selection while it's still inside an editor so a
+      // dropdown can restore it after focus moves to the popup.
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        if (editorOf(range.startContainer)) {
+          savedRangeRef.current = range.cloneRange();
+        }
+      }
+      refreshFormats();
+    };
+    document.addEventListener("selectionchange", onSelectionChange);
     return () =>
-      document.removeEventListener("selectionchange", refreshFormats);
+      document.removeEventListener("selectionchange", onSelectionChange);
   }, [refreshFormats]);
+
+  // Re-focus the editor and reinstate the stashed selection. Used by controls
+  // that steal focus (the font / line-height dropdowns) before they run a
+  // command, so the command lands on the text the user had selected.
+  const restoreSelection = React.useCallback(() => {
+    const range = savedRangeRef.current;
+    const editor = range && editorOf(range.startContainer);
+    if (!range || !editor) return false;
+    editor.focus({ preventScroll: true });
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    return true;
+  }, []);
+
+  const applyFontFamily = React.useCallback(
+    (value: string) => {
+      if (!restoreSelection()) return;
+      document.execCommand("fontName", false, value);
+      refreshFormats();
+      paginate();
+    },
+    [restoreSelection, refreshFormats, paginate]
+  );
+
+  // There's no execCommand for line height, so style the block elements the
+  // selection touches directly. Top-level blocks cascade to nested content
+  // (list items, etc.), which is what we want.
+  const applyLineHeight = React.useCallback(
+    (value: string) => {
+      if (!restoreSelection()) return;
+      const range = savedRangeRef.current;
+      const editor = range && editorOf(range.startContainer);
+      if (!range || !editor) return;
+
+      const blocks = Array.from(editor.children).filter(
+        (el): el is HTMLElement =>
+          el instanceof HTMLElement && range.intersectsNode(el)
+      );
+      if (blocks.length === 0) {
+        // No wrapping block (e.g. bare first line) — fall back to the page.
+        editor.style.lineHeight = value;
+      } else {
+        blocks.forEach((block) => (block.style.lineHeight = value));
+      }
+      paginate();
+    },
+    [restoreSelection, paginate]
+  );
 
   const exec = React.useCallback(
     (command: string, value?: string) => {
@@ -306,6 +419,31 @@ export default function RichTextEditor() {
           <ToolbarButton label="Redo" onClick={() => exec("redo")}>
             <Redo2 />
           </ToolbarButton>
+
+          <ToolbarDivider />
+
+          <Select onValueChange={applyFontFamily}>
+            <SelectTrigger
+              size="sm"
+              aria-label="Font family"
+              title="Font family"
+              className="w-36"
+            >
+              <Type className="size-3.5 text-muted-foreground" />
+              <SelectValue placeholder="Font" />
+            </SelectTrigger>
+            <SelectContent>
+              {FONT_FAMILIES.map((font) => (
+                <SelectItem
+                  key={font.label}
+                  value={font.value}
+                  style={{ fontFamily: font.value }}
+                >
+                  {font.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <ToolbarDivider />
 
@@ -410,11 +548,52 @@ export default function RichTextEditor() {
             <AlignJustify />
           </ToolbarToggle>
 
+          <ToolbarDivider />
+
+          <Select onValueChange={applyLineHeight}>
+            <SelectTrigger
+              size="sm"
+              aria-label="Line height"
+              title="Line spacing"
+              className="w-28"
+            >
+              <Baseline className="size-3.5 text-muted-foreground" />
+              <SelectValue placeholder="Spacing" />
+            </SelectTrigger>
+            <SelectContent>
+              {LINE_HEIGHTS.map((lh) => (
+                <SelectItem key={lh.value} value={lh.value}>
+                  {lh.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={paperSize}
+            onValueChange={(value) => setPaperSize(value as PaperSize)}
+          >
+            <SelectTrigger
+              size="sm"
+              aria-label="Paper size"
+              title="Paper size"
+              className="ml-auto w-44"
+            >
+              <SelectValue placeholder="Paper size" />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(PAPER_SIZES) as PaperSize[]).map((size) => (
+                <SelectItem key={size} value={size}>
+                  {PAPER_SIZES[size].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="ml-auto"
             aria-label="Print"
             title="Print syllabus"
             onMouseDown={(e) => e.preventDefault()}
@@ -429,7 +608,7 @@ export default function RichTextEditor() {
         <div className="flex justify-center bg-muted px-6 pt-2">
           <MarginRuler
             orientation="horizontal"
-            length={PAGE_WIDTH}
+            length={paper.width}
             start={margins.left}
             end={margins.right}
             startLabel="Left margin"
@@ -448,7 +627,7 @@ export default function RichTextEditor() {
         {/* Vertical ruler pinned to the far-left edge of the editing area. */}
         <MarginRuler
           orientation="vertical"
-          length={PAGE_HEIGHT}
+          length={paper.height}
           start={margins.top}
           end={margins.bottom}
           startLabel="Top margin"
@@ -475,6 +654,8 @@ export default function RichTextEditor() {
               id={id}
               index={i}
               margins={margins}
+              width={paper.width}
+              height={paper.height}
               registerEditor={registerEditor}
               lastEditorRef={lastEditorRef}
               onInput={handleInput}
@@ -551,6 +732,8 @@ function Page({
   id,
   index,
   margins,
+  width,
+  height,
   registerEditor,
   lastEditorRef,
   onInput,
@@ -558,6 +741,8 @@ function Page({
   id: string;
   index: number;
   margins: Margins;
+  width: number;
+  height: number;
   registerEditor: (id: string, el: HTMLDivElement | null) => void;
   lastEditorRef: React.RefObject<HTMLDivElement | null>;
   onInput: () => void;
@@ -565,7 +750,8 @@ function Page({
   return (
     <div
       data-print-page
-      className="relative flex h-letter w-letter flex-col overflow-hidden bg-white shadow-xl ring-1 ring-black/5"
+      style={{ width, height }}
+      className="relative flex flex-col overflow-hidden bg-white shadow-xl ring-1 ring-black/5"
     >
       <div
         ref={(el) => registerEditor(id, el)}
