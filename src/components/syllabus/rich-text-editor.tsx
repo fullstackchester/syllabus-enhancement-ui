@@ -19,6 +19,7 @@ import {
   MessagesSquare,
   Printer,
   Redo2,
+  Save,
   ShieldCheck,
   Strikethrough,
   Type,
@@ -26,6 +27,7 @@ import {
   Undo2,
   Users,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +43,12 @@ import {
 } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
-import type { SyllabusStatus } from "@/types/syllabus.types";
+import type {
+  SyllabusDocument,
+  SyllabusFormatting,
+  SyllabusPageContent,
+  SyllabusStatus,
+} from "@/types/syllabus.types";
 import { MarginRuler } from "@/components/syllabus/margin-ruler";
 import {
   DEFAULT_MARGINS,
@@ -174,6 +181,87 @@ function restoreCaretMarkers(markers: CaretMarkers) {
   // Remove the later marker first; the live selection clamps to the same spot.
   end.remove();
   start.remove();
+}
+
+// Walk every page's DOM and record which formatting is actually in use:
+// distinct font families / sizes / line heights / alignments / headings, plus
+// presence flags for the inline marks. execCommand emits both styled spans
+// (style.*) and legacy <font face/size> attributes, so we check both.
+function collectFormatting(editors: HTMLElement[]): SyllabusFormatting {
+  const fontFamilies = new Set<string>();
+  const fontSizes = new Set<string>();
+  const lineHeights = new Set<string>();
+  const alignments = new Set<string>();
+  const headings = new Set<string>();
+  const flags = {
+    bold: false,
+    italic: false,
+    underline: false,
+    strikethrough: false,
+    unorderedList: false,
+    orderedList: false,
+    links: false,
+  };
+
+  for (const editor of editors) {
+    editor.querySelectorAll<HTMLElement>("*").forEach((node) => {
+      const ff = node.style.fontFamily || node.getAttribute("face");
+      if (ff) fontFamilies.add(ff);
+      const fs = node.style.fontSize || node.getAttribute("size");
+      if (fs) fontSizes.add(fs);
+      if (node.style.lineHeight) lineHeights.add(node.style.lineHeight);
+      if (node.style.textAlign) alignments.add(node.style.textAlign);
+
+      switch (node.tagName.toLowerCase()) {
+        case "h1":
+        case "h2":
+        case "h3":
+          headings.add(node.tagName.toLowerCase());
+          break;
+        case "b":
+        case "strong":
+          flags.bold = true;
+          break;
+        case "i":
+        case "em":
+          flags.italic = true;
+          break;
+        case "u":
+          flags.underline = true;
+          break;
+        case "s":
+        case "strike":
+        case "del":
+          flags.strikethrough = true;
+          break;
+        case "ul":
+          flags.unorderedList = true;
+          break;
+        case "ol":
+          flags.orderedList = true;
+          break;
+        case "a":
+          flags.links = true;
+          break;
+      }
+
+      if (node.style.fontWeight === "bold" || +node.style.fontWeight >= 600)
+        flags.bold = true;
+      if (node.style.fontStyle === "italic") flags.italic = true;
+      const deco = node.style.textDecorationLine || node.style.textDecoration;
+      if (deco.includes("underline")) flags.underline = true;
+      if (deco.includes("line-through")) flags.strikethrough = true;
+    });
+  }
+
+  return {
+    fontFamilies: [...fontFamilies],
+    fontSizes: [...fontSizes],
+    lineHeights: [...lineHeights],
+    alignments: [...alignments],
+    headings: [...headings],
+    ...flags,
+  };
 }
 
 export default function RichTextEditor() {
@@ -406,6 +494,54 @@ export default function RichTextEditor() {
     paginate();
   }, [refreshFormats, paginate]);
 
+  // Gather the full document — geometry, every formatting option in use, the
+  // page count, and the content of each page — into a single serialisable
+  // object, persist it, and confirm with a snackbar.
+  const handleSave = React.useCallback(() => {
+    const editors = pageIds
+      .map((id) => editorsRef.current.get(id))
+      .filter((el): el is HTMLDivElement => !!el);
+
+    const pages: SyllabusPageContent[] = editors.map((el, i) => ({
+      index: i + 1,
+      html: el.innerHTML,
+      text: (el.textContent ?? "").trim(),
+    }));
+
+    const doc: SyllabusDocument = {
+      savedAt: new Date().toISOString(),
+      paper: {
+        size: paperSize,
+        label: paper.label,
+        width: paper.width,
+        height: paper.height,
+        print: paper.print,
+      },
+      margins,
+      pageCount: pages.length,
+      pages,
+      formatting: collectFormatting(editors),
+    };
+
+    try {
+      localStorage.setItem("syllabus-document", JSON.stringify(doc));
+      // Surface the captured object for inspection while the backend is wired up.
+      console.log("Saved syllabus document:", doc);
+      toast("Syllabus saved successfully", 
+        // {
+        // description: `${doc.pageCount} page${
+        //   doc.pageCount === 1 ? "" : "s"
+        // } saved successfully.`,
+      // }
+    );
+    } catch (error) {
+      console.error("Failed to save syllabus document:", error);
+      toast.error("Couldn't save syllabus", {
+        description: "Something went wrong while saving. Please try again.",
+      });
+    }
+  }, [pageIds, paperSize, paper, margins]);
+
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-muted">
       <div className="sticky top-0 z-20 print:hidden">
@@ -601,6 +737,18 @@ export default function RichTextEditor() {
           >
             <Printer />
             Print
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            aria-label="Save"
+            title="Save syllabus"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleSave}
+          >
+            <Save />
+            Save
           </Button>
         </div>
 
