@@ -28,16 +28,18 @@ import {
 import { Avatar, AvatarFallback, AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Toggle } from "@/components/ui/toggle";
 import { cn } from "@/lib/utils";
 import type { SyllabusStatus } from "@/types/syllabus.types";
+import { MarginRuler } from "@/components/syllabus/margin-ruler";
+import {
+  DEFAULT_MARGINS,
+  PAGE_HEIGHT,
+  PAGE_WIDTH,
+  type Margins,
+} from "@/components/syllabus/page-geometry";
 
 type ActiveFormats = {
   bold: boolean;
@@ -79,7 +81,8 @@ const isEditor = (el: Element | null): el is HTMLElement =>
 
 // A page editor overflows when its content is taller than its (fixed) box.
 // The 1px slack avoids thrashing on sub-pixel rounding.
-const isOverflowing = (el: HTMLElement) => el.scrollHeight - el.clientHeight > 1;
+const isOverflowing = (el: HTMLElement) =>
+  el.scrollHeight - el.clientHeight > 1;
 
 // A page is empty when it has no block elements and no visible text.
 const isEmptyEditor = (el: HTMLElement) =>
@@ -141,6 +144,7 @@ function restoreCaretMarkers(markers: CaretMarkers) {
 export default function RichTextEditor() {
   const [pageIds, setPageIds] = React.useState<string[]>(() => [newPageId()]);
   const [formats, setFormats] = React.useState<ActiveFormats>(EMPTY_FORMATS);
+  const [margins, setMargins] = React.useState<Margins>(DEFAULT_MARGINS);
   const lastEditorRef = React.useRef<HTMLDivElement | null>(null);
   const editorsRef = React.useRef<Map<string, HTMLDivElement>>(new Map());
 
@@ -218,10 +222,22 @@ export default function RichTextEditor() {
   }, [pageIds]);
 
   // Re-run pagination after the page list changes (e.g. a page was just added)
-  // so multi-page spills converge over successive renders.
+  // or the margins change (resizing the writable area reflows content) so
+  // multi-page spills converge over successive renders.
   React.useLayoutEffect(() => {
     paginate();
-  }, [paginate]);
+  }, [paginate, margins]);
+
+  // Merge a partial margin update, rounding to whole pixels to avoid jitter.
+  const updateMargins = React.useCallback((patch: Partial<Margins>) => {
+    setMargins((m) => ({
+      ...m,
+      ...(patch.top !== undefined && { top: Math.round(patch.top) }),
+      ...(patch.right !== undefined && { right: Math.round(patch.right) }),
+      ...(patch.bottom !== undefined && { bottom: Math.round(patch.bottom) }),
+      ...(patch.left !== undefined && { left: Math.round(patch.left) }),
+    }));
+  }, []);
 
   // Keep block structure predictable so we can move whole blocks between pages.
   React.useEffect(() => {
@@ -279,136 +295,173 @@ export default function RichTextEditor() {
 
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-muted">
-      <div
-        data-print-toolbar
-        className="sticky top-0 z-20 flex flex-wrap items-center gap-0.5 border-b bg-background/80 px-4 py-1.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/70 print:hidden"
-      >
-        <ToolbarButton label="Undo" onClick={() => exec("undo")}>
-          <Undo2 />
-        </ToolbarButton>
-        <ToolbarButton label="Redo" onClick={() => exec("redo")}>
-          <Redo2 />
-        </ToolbarButton>
+      <div className="sticky top-0 z-20 print:hidden">
+        <div
+          data-print-toolbar
+          className="flex flex-wrap items-center gap-0.5 border-b bg-background/80 px-4 py-1.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/70"
+        >
+          <ToolbarButton label="Undo" onClick={() => exec("undo")}>
+            <Undo2 />
+          </ToolbarButton>
+          <ToolbarButton label="Redo" onClick={() => exec("redo")}>
+            <Redo2 />
+          </ToolbarButton>
 
-        <ToolbarDivider />
+          <ToolbarDivider />
 
-        <ToolbarToggle
-          label="Heading 1"
-          pressed={formats.block === "h1"}
-          onPressedChange={() => toggleHeading("h1")}
-        >
-          <Heading1 />
-        </ToolbarToggle>
-        <ToolbarToggle
-          label="Heading 2"
-          pressed={formats.block === "h2"}
-          onPressedChange={() => toggleHeading("h2")}
-        >
-          <Heading2 />
-        </ToolbarToggle>
-        <ToolbarToggle
-          label="Heading 3"
-          pressed={formats.block === "h3"}
-          onPressedChange={() => toggleHeading("h3")}
-        >
-          <Heading3 />
-        </ToolbarToggle>
+          <ToolbarToggle
+            label="Heading 1"
+            pressed={formats.block === "h1"}
+            onPressedChange={() => toggleHeading("h1")}
+          >
+            <Heading1 />
+          </ToolbarToggle>
+          <ToolbarToggle
+            label="Heading 2"
+            pressed={formats.block === "h2"}
+            onPressedChange={() => toggleHeading("h2")}
+          >
+            <Heading2 />
+          </ToolbarToggle>
+          <ToolbarToggle
+            label="Heading 3"
+            pressed={formats.block === "h3"}
+            onPressedChange={() => toggleHeading("h3")}
+          >
+            <Heading3 />
+          </ToolbarToggle>
 
-        <ToolbarDivider />
+          <ToolbarDivider />
 
-        <ToolbarToggle
-          label="Bold"
-          pressed={formats.bold}
-          onPressedChange={() => exec("bold")}
-        >
-          <Bold />
-        </ToolbarToggle>
-        <ToolbarToggle
-          label="Italic"
-          pressed={formats.italic}
-          onPressedChange={() => exec("italic")}
-        >
-          <Italic />
-        </ToolbarToggle>
-        <ToolbarToggle
-          label="Underline"
-          pressed={formats.underline}
-          onPressedChange={() => exec("underline")}
-        >
-          <Underline />
-        </ToolbarToggle>
-        <ToolbarToggle
-          label="Strikethrough"
-          pressed={formats.strikeThrough}
-          onPressedChange={() => exec("strikeThrough")}
-        >
-          <Strikethrough />
-        </ToolbarToggle>
+          <ToolbarToggle
+            label="Bold"
+            pressed={formats.bold}
+            onPressedChange={() => exec("bold")}
+          >
+            <Bold />
+          </ToolbarToggle>
+          <ToolbarToggle
+            label="Italic"
+            pressed={formats.italic}
+            onPressedChange={() => exec("italic")}
+          >
+            <Italic />
+          </ToolbarToggle>
+          <ToolbarToggle
+            label="Underline"
+            pressed={formats.underline}
+            onPressedChange={() => exec("underline")}
+          >
+            <Underline />
+          </ToolbarToggle>
+          <ToolbarToggle
+            label="Strikethrough"
+            pressed={formats.strikeThrough}
+            onPressedChange={() => exec("strikeThrough")}
+          >
+            <Strikethrough />
+          </ToolbarToggle>
 
-        <ToolbarDivider />
+          <ToolbarDivider />
 
-        <ToolbarToggle
-          label="Bulleted list"
-          pressed={formats.insertUnorderedList}
-          onPressedChange={() => exec("insertUnorderedList")}
-        >
-          <List />
-        </ToolbarToggle>
-        <ToolbarToggle
-          label="Numbered list"
-          pressed={formats.insertOrderedList}
-          onPressedChange={() => exec("insertOrderedList")}
-        >
-          <ListOrdered />
-        </ToolbarToggle>
+          <ToolbarToggle
+            label="Bulleted list"
+            pressed={formats.insertUnorderedList}
+            onPressedChange={() => exec("insertUnorderedList")}
+          >
+            <List />
+          </ToolbarToggle>
+          <ToolbarToggle
+            label="Numbered list"
+            pressed={formats.insertOrderedList}
+            onPressedChange={() => exec("insertOrderedList")}
+          >
+            <ListOrdered />
+          </ToolbarToggle>
 
-        <ToolbarDivider />
+          <ToolbarDivider />
 
-        <ToolbarToggle
-          label="Align left"
-          pressed={formats.justifyLeft}
-          onPressedChange={() => exec("justifyLeft")}
-        >
-          <AlignLeft />
-        </ToolbarToggle>
-        <ToolbarToggle
-          label="Align center"
-          pressed={formats.justifyCenter}
-          onPressedChange={() => exec("justifyCenter")}
-        >
-          <AlignCenter />
-        </ToolbarToggle>
-        <ToolbarToggle
-          label="Align right"
-          pressed={formats.justifyRight}
-          onPressedChange={() => exec("justifyRight")}
-        >
-          <AlignRight />
-        </ToolbarToggle>
-        <ToolbarToggle
-          label="Justify"
-          pressed={formats.justifyFull}
-          onPressedChange={() => exec("justifyFull")}
-        >
-          <AlignJustify />
-        </ToolbarToggle>
+          <ToolbarToggle
+            label="Align left"
+            pressed={formats.justifyLeft}
+            onPressedChange={() => exec("justifyLeft")}
+          >
+            <AlignLeft />
+          </ToolbarToggle>
+          <ToolbarToggle
+            label="Align center"
+            pressed={formats.justifyCenter}
+            onPressedChange={() => exec("justifyCenter")}
+          >
+            <AlignCenter />
+          </ToolbarToggle>
+          <ToolbarToggle
+            label="Align right"
+            pressed={formats.justifyRight}
+            onPressedChange={() => exec("justifyRight")}
+          >
+            <AlignRight />
+          </ToolbarToggle>
+          <ToolbarToggle
+            label="Justify"
+            pressed={formats.justifyFull}
+            onPressedChange={() => exec("justifyFull")}
+          >
+            <AlignJustify />
+          </ToolbarToggle>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="ml-auto"
-          aria-label="Print"
-          title="Print syllabus"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => window.print()}
-        >
-          <Printer />
-          Print
-        </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            aria-label="Print"
+            title="Print syllabus"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => window.print()}
+          >
+            <Printer />
+            Print
+          </Button>
+        </div>
+
+        {/* Horizontal ruler, pinned directly beneath the toolbar. */}
+        <div className="flex justify-center bg-muted px-6 pt-2">
+          <MarginRuler
+            orientation="horizontal"
+            length={PAGE_WIDTH}
+            start={margins.left}
+            end={margins.right}
+            startLabel="Left margin"
+            endLabel="Right margin"
+            onChange={(n) =>
+              updateMargins({
+                ...(n.start !== undefined && { left: n.start }),
+                ...(n.end !== undefined && { right: n.end }),
+              })
+            }
+          />
+        </div>
       </div>
 
-      <div className="flex flex-1 items-start justify-center gap-6 px-6 py-10">
+      <div className="relative flex flex-1 items-start justify-center gap-6 px-6 py-10">
+        {/* Vertical ruler pinned to the far-left edge of the editing area. */}
+        <MarginRuler
+          orientation="vertical"
+          length={PAGE_HEIGHT}
+          start={margins.top}
+          end={margins.bottom}
+          startLabel="Top margin"
+          endLabel="Bottom margin"
+          className="absolute top-10 left-2"
+          onChange={(n) =>
+            updateMargins({
+              ...(n.start !== undefined && { top: n.start }),
+              ...(n.end !== undefined && { bottom: n.end }),
+            })
+          }
+        />
+
         <CommentsPanel />
 
         <div
@@ -421,6 +474,7 @@ export default function RichTextEditor() {
               key={id}
               id={id}
               index={i}
+              margins={margins}
               registerEditor={registerEditor}
               lastEditorRef={lastEditorRef}
               onInput={handleInput}
@@ -496,12 +550,14 @@ function ToolbarToggle({
 function Page({
   id,
   index,
+  margins,
   registerEditor,
   lastEditorRef,
   onInput,
 }: {
   id: string;
   index: number;
+  margins: Margins;
   registerEditor: (id: string, el: HTMLDivElement | null) => void;
   lastEditorRef: React.RefObject<HTMLDivElement | null>;
   onInput: () => void;
@@ -520,16 +576,20 @@ function Page({
         aria-multiline="true"
         aria-label={`Page ${index + 1}`}
         data-placeholder={
-          index === 0
-            ? "Start writing your syllabus…"
-            : "Continue writing…"
+          index === 0 ? "Start writing your syllabus…" : "Continue writing…"
         }
         onFocus={(e) => {
           lastEditorRef.current = e.currentTarget;
         }}
         onInput={onInput}
+        style={{
+          paddingTop: margins.top,
+          paddingRight: margins.right,
+          paddingBottom: margins.bottom,
+          paddingLeft: margins.left,
+        }}
         className={cn(
-          "w-full min-h-0 flex-1 overflow-hidden px-24 py-20 text-sm leading-relaxed text-neutral-900 outline-none",
+          "min-h-0 w-full flex-1 overflow-hidden text-sm leading-relaxed text-neutral-900 outline-none",
           "[&:empty]:before:text-neutral-400 [&:empty]:before:content-[attr(data-placeholder)]",
           "[&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-3xl [&_h1]:font-bold",
           "[&_h2]:mt-3 [&_h2]:mb-2 [&_h2]:text-2xl [&_h2]:font-semibold",
@@ -615,10 +675,7 @@ const STATUS_BADGE: Record<
   overdue: { label: "Overdue", variant: "destructive" },
 };
 
-function SidePanel({
-  className,
-  ...props
-}: React.ComponentProps<"aside">) {
+function SidePanel({ className, ...props }: React.ComponentProps<"aside">) {
   return (
     <aside
       className={cn(
