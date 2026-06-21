@@ -12,6 +12,7 @@ import {
   List,
   ListOrdered,
   Plus,
+  Printer,
   Redo2,
   Strikethrough,
   Underline,
@@ -106,7 +107,10 @@ export default function RichTextEditor() {
 
   return (
     <div className="flex min-h-screen flex-1 flex-col bg-muted">
-      <div className="sticky top-0 z-20 flex flex-wrap items-center gap-0.5 border-b bg-background/80 px-4 py-1.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/70">
+      <div
+        data-print-toolbar
+        className="sticky top-0 z-20 flex flex-wrap items-center gap-0.5 border-b bg-background/80 px-4 py-1.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/70 print:hidden"
+      >
         <ToolbarButton label="Undo" onClick={() => exec("undo")}>
           <Undo2 />
         </ToolbarButton>
@@ -216,9 +220,27 @@ export default function RichTextEditor() {
         >
           <AlignJustify />
         </ToolbarToggle>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="ml-auto"
+          aria-label="Print"
+          title="Print syllabus"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => window.print()}
+        >
+          <Printer />
+          Print
+        </Button>
       </div>
 
-      <div className="flex flex-col items-center gap-6 px-6 py-10">
+      <div
+        id="syllabus-print-root"
+        data-print-root
+        className="flex flex-col items-center gap-6 px-6 py-10"
+      >
         {pageIds.map((id, i) => (
           <Page
             key={id}
@@ -232,7 +254,7 @@ export default function RichTextEditor() {
           type="button"
           variant="outline"
           size="lg"
-          className="mt-2 bg-background"
+          className="mt-2 bg-background print:hidden"
           onClick={addPage}
         >
           <Plus />
@@ -312,7 +334,10 @@ function Page({
   onInput: () => void;
 }) {
   return (
-    <div className="relative flex w-letter min-h-letter flex-col bg-white shadow-xl ring-1 ring-black/5">
+    <div
+      data-print-page
+      className="relative flex w-letter min-h-letter flex-col bg-white shadow-xl ring-1 ring-black/5"
+    >
       <div
         contentEditable
         suppressContentEditableWarning
@@ -341,7 +366,7 @@ function Page({
           "[&_a]:text-primary [&_a]:underline"
         )}
       />
-      <span className="pointer-events-none absolute right-4 bottom-3 text-[0.625rem] font-medium text-neutral-400 select-none">
+      <span className="pointer-events-none absolute right-4 bottom-3 text-[0.625rem] font-medium text-neutral-400 select-none print:hidden">
         Page {index + 1}
       </span>
     </div>
